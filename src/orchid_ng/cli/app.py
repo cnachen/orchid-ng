@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 from loguru import logger
 import typer
 
-from orchid_ng.services.params import ParamsService
+from orchid_ng.services.config import ConfigService
 
 load_dotenv()
 
@@ -10,31 +10,31 @@ app_instance = typer.Typer()
 
 
 @app_instance.callback()
-def init_params_service(
+def init_config_service(
     run_dir: str = typer.Option(
-        ParamsService().run_dir,
+        ConfigService().run_dir,
         "--run-dir",
         help="Directory to store run results",
     ),
     iterations: int = typer.Option(
-        ParamsService().iterations,
+        ConfigService().iterations,
         "--iterations",
         help="Budget of iterations to a run",
     ),
     action_limits: int = typer.Option(
-        ParamsService().action_limits,
+        ConfigService().action_limits,
         "--action-limits",
         help="Action limits of each layer",
     ),
 ):
-    logger.info("Initializing ParamsService")
+    logger.info("Initializing ConfigService")
     logger.debug(f"[param] run_dir: {run_dir}")
     logger.debug(f"[param] iterations: {iterations}")
     logger.debug(f"[param] action_limits: {action_limits}")
 
-    ParamsService().run_dir = run_dir
-    ParamsService().iterations = iterations
-    ParamsService().action_limits = action_limits
+    ConfigService().run_dir = run_dir
+    ConfigService().iterations = iterations
+    ConfigService().action_limits = action_limits
 
 
 @app_instance.command()
