@@ -11,10 +11,10 @@ app_instance = typer.Typer()
 
 @app_instance.callback()
 def init_config_service(
-    run_dir: str = typer.Option(
-        ConfigService().run_dir,
-        "--run-dir",
-        help="Directory to store run results",
+    runs_dir: str = typer.Option(
+        ConfigService().runs_dir,
+        "--runs-dir",
+        help="Directory to store runs results",
     ),
     iterations: int = typer.Option(
         ConfigService().iterations,
@@ -28,11 +28,11 @@ def init_config_service(
     ),
 ):
     logger.info("Initializing ConfigService")
-    logger.debug(f"[param] run_dir: {run_dir}")
+    logger.debug(f"[param] runs_dir: {runs_dir}")
     logger.debug(f"[param] iterations: {iterations}")
     logger.debug(f"[param] action_limits: {action_limits}")
 
-    ConfigService().run_dir = run_dir
+    ConfigService().runs_dir = runs_dir
     ConfigService().iterations = iterations
     ConfigService().action_limits = action_limits
 
