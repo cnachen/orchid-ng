@@ -1,0 +1,18 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Python-related files
+.venv
+.pytest_cache
+.ruff_cache
+
+# Environment variables
+.env
+
+# Output directories
+.runs/

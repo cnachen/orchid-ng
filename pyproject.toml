@@ -1,0 +1,31 @@
+[project]
+name = "orchid-ng"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "cnachen", email = "cnachencli@live.cn" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "litellm>=1.82.6",
+    "loguru>=0.7.3",
+    "openai>=2.30.0",
+    "pydantic>=2.12.5",
+    "python-dotenv>=1.2.2",
+    "tqdm>=4.67.3",
+    "typer>=0.24.1",
+]
+
+[project.scripts]
+orchid-ng = "orchid_ng.cli.app:app_instance"
+
+[build-system]
+requires = ["uv_build>=0.11.1,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "ruff>=0.15.8",
+]
