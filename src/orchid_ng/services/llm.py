@@ -51,7 +51,9 @@ class LLMService(metaclass=SingletonMeta):
         )
         default_models = self._parse_csv(default_models_raw)
 
-        default_openai_base_url = self._env_get_first(f"{default_prefix}_OPENAI_BASE_URL")
+        default_openai_base_url = self._env_get_first(
+            f"{default_prefix}_OPENAI_BASE_URL"
+        )
         default_openai_api_key = self._env_get_first(f"{default_prefix}_OPENAI_API_KEY")
 
         groups: dict[str, LLMGroupConfig] = {}
@@ -71,10 +73,18 @@ class LLMService(metaclass=SingletonMeta):
                 models = models or default_models
 
             if len(models) == 0:
-                raise ValueError(f"LLM model group '{normalized_name}' has no models configured.")
+                raise ValueError(
+                    f"LLM model group '{normalized_name}' has no models configured."
+                )
 
-            openai_base_url = self._env_get_first(f"{prefix}_OPENAI_BASE_URL") or default_openai_base_url
-            openai_api_key = self._env_get_first(f"{prefix}_OPENAI_API_KEY") or default_openai_api_key
+            openai_base_url = (
+                self._env_get_first(f"{prefix}_OPENAI_BASE_URL")
+                or default_openai_base_url
+            )
+            openai_api_key = (
+                self._env_get_first(f"{prefix}_OPENAI_API_KEY")
+                or default_openai_api_key
+            )
 
             groups[normalized_name] = LLMGroupConfig(
                 name=normalized_name,
@@ -97,7 +107,9 @@ class LLMService(metaclass=SingletonMeta):
             raise KeyError(f"Unknown LLM model group: {group}")
         return self._groups[key]
 
-    def chat(self, group: str, messages: list[dict[str, Any]], **kwargs: Any) -> list[Any]:
+    def chat(
+        self, group: str, messages: list[dict[str, Any]], **kwargs: Any
+    ) -> list[Any]:
         group_config = self.get_group(group)
         results: list[Any] = []
 
@@ -108,13 +120,22 @@ class LLMService(metaclass=SingletonMeta):
             call_kwargs["api_key"] = group_config.openai_api_key
 
         for model in group_config.models:
-            results.append(litellm.completion(model=model, messages=messages, **call_kwargs))
+            results.append(
+                litellm.completion(model=model, messages=messages, **call_kwargs)
+            )
         return results
 
-    def chat_all_groups(self, messages: list[dict[str, Any]], **kwargs: Any) -> dict[str, list[Any]]:
-        return {group: self.chat(group=group, messages=messages, **kwargs) for group in self.list_groups()}
+    def chat_all_groups(
+        self, messages: list[dict[str, Any]], **kwargs: Any
+    ) -> dict[str, list[Any]]:
+        return {
+            group: self.chat(group=group, messages=messages, **kwargs)
+            for group in self.list_groups()
+        }
 
-    async def achat(self, group: str, messages: list[dict[str, Any]], **kwargs: Any) -> list[Any]:
+    async def achat(
+        self, group: str, messages: list[dict[str, Any]], **kwargs: Any
+    ) -> list[Any]:
         import asyncio
 
         group_config = self.get_group(group)
@@ -125,13 +146,20 @@ class LLMService(metaclass=SingletonMeta):
         if group_config.openai_api_key is not None:
             call_kwargs["api_key"] = group_config.openai_api_key
 
-        coros = [litellm.acompletion(model=model, messages=messages, **call_kwargs) for model in group_config.models]
+        coros = [
+            litellm.acompletion(model=model, messages=messages, **call_kwargs)
+            for model in group_config.models
+        ]
         results = await asyncio.gather(*coros)
         return list(results)
 
-    async def achat_all_groups(self, messages: list[dict[str, Any]], **kwargs: Any) -> dict[str, list[Any]]:
+    async def achat_all_groups(
+        self, messages: list[dict[str, Any]], **kwargs: Any
+    ) -> dict[str, list[Any]]:
         import asyncio
 
         groups = list(self.list_groups())
-        results = await asyncio.gather(*(self.achat(group=group, messages=messages, **kwargs) for group in groups))
+        results = await asyncio.gather(
+            *(self.achat(group=group, messages=messages, **kwargs) for group in groups)
+        )
         return dict(zip(groups, results, strict=True))

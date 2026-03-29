@@ -67,7 +67,9 @@ def test_chat_calls_all_models_in_group(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("orchid_ng.services.llm.litellm.completion", fake_completion)
 
     service = LLMService()
-    results = service.chat(group="reviewers", messages=[{"role": "user", "content": "hi"}], temperature=0)
+    results = service.chat(
+        group="reviewers", messages=[{"role": "user", "content": "hi"}], temperature=0
+    )
 
     assert [r["model"] for r in results] == ["gpt-5.2", "gpt-5.4"]
     assert [c["model"] for c in calls] == ["gpt-5.2", "gpt-5.4"]
@@ -94,13 +96,17 @@ async def test_achat_calls_all_models_in_group(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("orchid_ng.services.llm.litellm.acompletion", fake_acompletion)
 
     service = LLMService()
-    results = await service.achat(group="reviewers", messages=[{"role": "user", "content": "hi"}], temperature=0)
+    results = await service.achat(
+        group="reviewers", messages=[{"role": "user", "content": "hi"}], temperature=0
+    )
 
     assert [r["model"] for r in results] == ["gpt-5.2", "gpt-5.4"]
 
     calls_by_model = {c["model"]: c for c in calls}
     assert set(calls_by_model.keys()) == {"gpt-5.2", "gpt-5.4"}
-    assert calls_by_model["gpt-5.2"]["kwargs"]["base_url"] == "https://default.example/v1"
+    assert (
+        calls_by_model["gpt-5.2"]["kwargs"]["base_url"] == "https://default.example/v1"
+    )
     assert calls_by_model["gpt-5.2"]["kwargs"]["api_key"] == "default-key"
     assert calls_by_model["gpt-5.2"]["kwargs"]["temperature"] == 0
 
@@ -121,7 +127,9 @@ async def test_achat_all_groups(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("orchid_ng.services.llm.litellm.acompletion", fake_acompletion)
 
     service = LLMService()
-    results = await service.achat_all_groups(messages=[{"role": "user", "content": "hi"}], temperature=0)
+    results = await service.achat_all_groups(
+        messages=[{"role": "user", "content": "hi"}], temperature=0
+    )
 
     assert set(results.keys()) == {"default", "reviewers"}
     assert [r["model"] for r in results["default"]] == ["GLM-5"]
