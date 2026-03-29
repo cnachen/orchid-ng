@@ -1,5 +1,5 @@
 from orchid_ng.services.config import ConfigService
-from datetime import datetime
+from pathlib import Path
 
 
 def test_singleton():
@@ -9,5 +9,5 @@ def test_singleton():
 
 
 def test_change_param():
-    ConfigService().runs_dir = "test"
-    assert ConfigService().runs_dir == "test"
+    ConfigService().runs_dir = Path("test")
+    assert ConfigService().runs_dir == Path("test")
