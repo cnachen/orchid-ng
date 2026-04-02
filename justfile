@@ -1,6 +1,6 @@
 # Run the generate command
-run research_task="AI generated text detection":
-    uv run -- orchid-ng generate "{{research_task}}"
+run:
+    uv run -- orchid-ng
 
 alias r := run
 
