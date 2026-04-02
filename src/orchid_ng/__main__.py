@@ -1,4 +1,5 @@
-from cli.app import app_instance
+from orchid_ng.cli.app import main
+
 
 if __name__ == "__main__":
-    app_instance()
+    main()
