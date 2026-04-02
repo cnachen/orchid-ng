@@ -62,7 +62,7 @@ def ideate_run(
         help="Frozen literature snapshot as JSON or JSONL.",
     ),
     method: str = typer.Option("orchid", help="Idea generation method."),
-    model: str = typer.Option("gpt-4.1-mini", help="Generation model."),
+    model: str = typer.Option("gpt-4o-mini", help="Generation model."),
     run_id: str | None = typer.Option(None, help="Optional custom run id."),
     desired_idea_count: int = typer.Option(2, min=1, help="Seed idea count."),
     budget_tokens: int = typer.Option(20_000, min=1, help="Budget hint."),
@@ -98,7 +98,7 @@ def ideate_run(
 @evaluate_app.command("run")
 def evaluate_run(
     run_id: str = typer.Option(..., help="Run identifier under runs/."),
-    judge_model: str = typer.Option("gpt-4.1-mini", help="Judge model."),
+    judge_model: str = typer.Option("gpt-5.2", help="Judge model."),
     project_root: Path = typer.Option(
         Path.cwd(),
         file_okay=False,

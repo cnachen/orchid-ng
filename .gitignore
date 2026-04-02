@@ -11,9 +11,12 @@ wheels/
 .pytest_cache
 .ruff_cache
 
-# Environment variables
+# Environment specified
 .env
+justfile.*
 
-# Output directories
+# Input and Output directories
 .runs/
 runs/
+.papers/
+papers/

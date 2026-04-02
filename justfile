@@ -4,6 +4,9 @@ run:
 
 alias r := run
 
+# Optionally import justfile.local
+import? 'justfile.local'
+
 # Execute any commands
 exec *args:
     uv run -- orchid-ng {{args}}
