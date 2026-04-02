@@ -10,10 +10,12 @@ from orchid_ng.domain import (
     ResearchTopic,
     make_id,
 )
-from orchid_ng.services.ideation import deduplicate_ideas
+from orchid_ng.services.alignment import alignment_gaps, select_idea_portfolio
+from orchid_ng.services.ideation import deduplicate_ideas, notes_to_ids
 from orchid_ng.services.prompts import (
     PromptLibrary,
     format_actions,
+    format_alignment_gaps,
     format_evidence,
     format_ideas,
     format_topic,
@@ -67,11 +69,13 @@ class SearchRefiner:
         model_client,
         prompt_library: PromptLibrary,
         search_judge,
+        evidence_builder=None,
         max_rounds: int = 1,
     ) -> None:
         self.model_client = model_client
         self.prompt_library = prompt_library
         self.search_judge = search_judge
+        self.evidence_builder = evidence_builder
         self.max_rounds = max_rounds
 
     def refine(
@@ -110,9 +114,12 @@ class SearchRefiner:
                     peer=peer,
                     background_evidence=background_evidence,
                     actions=judgment.next_actions,
+                    run_store=run_store,
                 )
                 next_generation.extend([winner, refined])
-            current_ideas = deduplicate_ideas(next_generation)[: len(ideas)]
+            current_ideas = select_idea_portfolio(
+                deduplicate_ideas(next_generation), topic, len(ideas)
+            )
             run_store.write_search_judgments(round_index, round_judgments)
             run_store.write_search_round(round_index, current_ideas, round_judgments)
         return current_ideas
@@ -124,37 +131,71 @@ class SearchRefiner:
         peer: IdeaCandidate,
         background_evidence: list[EvidenceNote],
         actions: list[CritiqueAction],
+        run_store,
     ) -> IdeaCandidate:
+        idea_evidence = _merge_evidence_notes(
+            background_evidence,
+            run_store.load_idea_evidence(winner.idea_id),
+            run_store.load_idea_evidence(peer.idea_id),
+        )
         prompt = self.prompt_library.render(
             "refine_idea",
             topic_block=format_topic(topic),
             winner_block=format_ideas([winner]),
             peer_block=format_ideas([peer]),
-            evidence_block=format_evidence(background_evidence),
+            evidence_block=format_evidence(idea_evidence),
+            gap_block=format_alignment_gaps(
+                list(dict.fromkeys([*alignment_gaps(winner), *alignment_gaps(peer)]))
+            ),
             actions_block=format_actions(actions),
         )
         refined = self.model_client.generate(prompt, IdeaCandidate)
-        supporting_evidence_ids = list(
-            dict.fromkeys(
-                [
-                    *winner.supporting_evidence_ids,
-                    *refined.supporting_evidence_ids,
-                ]
-            )
-        )
         provenance = list(dict.fromkeys([*winner.provenance, "search_refine"]))
-        return refined.model_copy(
+        candidate = refined.model_copy(
             update={
                 "idea_id": make_id("idea"),
                 "method_name": winner.method_name,
                 "parent_idea_id": winner.idea_id,
                 "round_index": winner.round_index + 1,
-                "supporting_evidence_ids": supporting_evidence_ids,
                 "provenance": provenance,
             }
+        )
+        if self.evidence_builder is None:
+            supporting_evidence_ids = list(
+                dict.fromkeys(
+                    [
+                        *winner.supporting_evidence_ids,
+                        *candidate.supporting_evidence_ids,
+                    ]
+                )
+            )
+            return candidate.model_copy(
+                update={"supporting_evidence_ids": supporting_evidence_ids[:3]}
+            )
+        refined_notes = self.evidence_builder.build_for_idea(candidate)
+        run_store.write_idea_evidence(candidate.idea_id, refined_notes)
+        supporting_evidence_ids = list(
+            dict.fromkeys(
+                [*winner.supporting_evidence_ids, *notes_to_ids(refined_notes)]
+            )
+        )
+        return candidate.model_copy(
+            update={"supporting_evidence_ids": supporting_evidence_ids[:3]}
         )
 
 
 def pair_ideas(ideas: list[IdeaCandidate]):
     iterator = iter(ideas)
     return zip_longest(iterator, iterator)
+
+
+def _merge_evidence_notes(*note_groups: list[EvidenceNote]) -> list[EvidenceNote]:
+    merged: list[EvidenceNote] = []
+    seen_note_ids: set[str] = set()
+    for note_group in note_groups:
+        for note in note_group:
+            if note.note_id in seen_note_ids:
+                continue
+            seen_note_ids.add(note.note_id)
+            merged.append(note)
+    return merged

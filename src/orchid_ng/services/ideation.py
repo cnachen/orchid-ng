@@ -5,8 +5,13 @@ from collections.abc import Callable
 from pydantic import BaseModel, ConfigDict, Field
 
 from orchid_ng.domain import IdeaCandidate, ResearchTopic, make_id
+from orchid_ng.services.alignment import select_idea_portfolio
 from orchid_ng.services.evidence import EvidenceBuilder
-from orchid_ng.services.prompts import PromptLibrary, format_evidence, format_topic
+from orchid_ng.services.prompts import (
+    PromptLibrary,
+    format_evidence,
+    format_topic,
+)
 
 
 class IdeaBatch(BaseModel):
@@ -62,7 +67,7 @@ class BaseIdeaMethod(IdeaMethod):
                     }
                 )
             )
-        return deduplicate_ideas(seeds)[: topic.desired_idea_count]
+        return select_idea_portfolio(seeds, topic, topic.desired_idea_count)
 
     def _attach_idea_evidence(
         self, ideas: list[IdeaCandidate], run_store
@@ -75,8 +80,7 @@ class BaseIdeaMethod(IdeaMethod):
             enriched.append(
                 idea.model_copy(
                     update={
-                        "supporting_evidence_ids": idea.supporting_evidence_ids
-                        or evidence_ids,
+                        "supporting_evidence_ids": evidence_ids[:3],
                     }
                 )
             )
@@ -103,6 +107,7 @@ class RetrievalOnlyMethod(BaseIdeaMethod):
             topic, background_notes=background, budget=budget
         )
         ideas = self._attach_idea_evidence(ideas, run_store)
+        ideas = select_idea_portfolio(ideas, topic, topic.desired_idea_count)
         run_store.write_seed_ideas(ideas)
         return ideas
 
@@ -117,6 +122,7 @@ class OrchidMethod(BaseIdeaMethod):
             topic, background_notes=background, budget=budget
         )
         ideas = self._attach_idea_evidence(ideas, run_store)
+        ideas = select_idea_portfolio(ideas, topic, topic.desired_idea_count)
         run_store.write_seed_ideas(ideas)
         if self.search_refiner is None:
             return ideas
@@ -145,9 +151,15 @@ def deduplicate_ideas(ideas: list[IdeaCandidate]) -> list[IdeaCandidate]:
     seen: set[str] = set()
     unique_ideas: list[IdeaCandidate] = []
     for idea in ideas:
-        fingerprint = (
-            " ".join([idea.title, idea.summary, idea.hypothesis]).strip().lower()
-        )
+        fingerprint = " ".join(
+            [
+                idea.title.strip().lower(),
+                idea.summary.strip().lower(),
+                " ".join(
+                    module.name.strip().lower() for module in idea.method.modules[:3]
+                ),
+            ]
+        ).strip()
         if fingerprint in seen:
             continue
         seen.add(fingerprint)

@@ -44,6 +44,7 @@ def run_ideation(
         model_client=generation_model,
         prompt_library=prompt_library,
         search_judge=search_judge,
+        evidence_builder=evidence_builder,
         max_rounds=settings.search_rounds,
     )
     method = build_idea_method(

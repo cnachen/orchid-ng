@@ -1,4 +1,5 @@
 from orchid_ng.domain.models import (
+    ConstraintProfile,
     CritiqueAction,
     CritiqueActionType,
     EvaluationReport,
@@ -6,14 +7,18 @@ from orchid_ng.domain.models import (
     EvidenceType,
     ExecutionResult,
     IdeaCandidate,
+    MethodDescription,
+    MethodModule,
     PairwiseJudgment,
     PaperRecord,
     ResearchTopic,
+    TaskDescription,
     RunManifest,
     make_id,
 )
 
 __all__ = [
+    "ConstraintProfile",
     "CritiqueAction",
     "CritiqueActionType",
     "EvaluationReport",
@@ -21,9 +26,12 @@ __all__ = [
     "EvidenceType",
     "ExecutionResult",
     "IdeaCandidate",
+    "MethodDescription",
+    "MethodModule",
     "PairwiseJudgment",
     "PaperRecord",
     "ResearchTopic",
+    "TaskDescription",
     "RunManifest",
     "make_id",
 ]

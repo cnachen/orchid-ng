@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from collections.abc import Iterable
 from pathlib import Path
@@ -26,6 +27,7 @@ class CorpusStore:
     ) -> None:
         self._records = records
         self.source_path = source_path
+        self._idf = _build_idf_index(records)
 
     @classmethod
     def empty(cls) -> "CorpusStore":
@@ -62,23 +64,39 @@ class CorpusStore:
     def search(self, query: str, top_k: int) -> list[PaperRecord]:
         if not self._records or top_k <= 0:
             return []
-        query_tokens = set(_tokenize(query))
+        query_tokens = _tokenize(query)
+        if not query_tokens:
+            return []
         scored_records = []
         for record in self._records:
-            haystack = " ".join(
-                [
-                    record.title,
-                    record.abstract,
-                    " ".join(record.claims),
-                    " ".join(record.assumptions),
-                    " ".join(record.risks),
-                    " ".join(record.applicability),
-                ]
+            field_scores = [
+                3.2 * _weighted_overlap(query_tokens, record.title, self._idf),
+                1.6 * _weighted_overlap(query_tokens, record.abstract, self._idf),
+                2.2
+                * _weighted_overlap(query_tokens, " ".join(record.claims), self._idf),
+                1.0
+                * _weighted_overlap(
+                    query_tokens, " ".join(record.assumptions), self._idf
+                ),
+                1.0
+                * _weighted_overlap(query_tokens, " ".join(record.risks), self._idf),
+                1.3
+                * _weighted_overlap(
+                    query_tokens, " ".join(record.applicability), self._idf
+                ),
+            ]
+            phrase_bonus = _phrase_bonus(
+                query,
+                " ".join(
+                    [
+                        record.title,
+                        record.abstract,
+                        " ".join(record.claims),
+                    ]
+                ),
             )
-            haystack_tokens = set(_tokenize(haystack))
-            overlap = len(query_tokens & haystack_tokens)
             recency_bonus = (record.year or 0) / 10_000
-            score = overlap + recency_bonus
+            score = sum(field_scores) + phrase_bonus + recency_bonus
             scored_records.append((score, record))
         scored_records.sort(
             key=lambda item: (-item[0], -(item[1].year or 0), item[1].paper_id)
@@ -126,3 +144,48 @@ def _find_duplicates(values: Iterable[str]) -> set[str]:
 
 def _tokenize(text: str) -> list[str]:
     return re.findall(r"[a-z0-9]+", text.lower())
+
+
+def _build_idf_index(records: list[PaperRecord]) -> dict[str, float]:
+    if not records:
+        return {}
+    document_count = len(records)
+    frequencies: dict[str, int] = {}
+    for record in records:
+        tokens = set(
+            _tokenize(
+                " ".join(
+                    [
+                        record.title,
+                        record.abstract,
+                        " ".join(record.claims),
+                        " ".join(record.assumptions),
+                        " ".join(record.risks),
+                        " ".join(record.applicability),
+                    ]
+                )
+            )
+        )
+        for token in tokens:
+            frequencies[token] = frequencies.get(token, 0) + 1
+    return {
+        token: math.log((document_count + 1) / (count + 1)) + 1
+        for token, count in frequencies.items()
+    }
+
+
+def _weighted_overlap(
+    query_tokens: list[str], text: str, idf_index: dict[str, float]
+) -> float:
+    haystack_tokens = set(_tokenize(text))
+    return sum(
+        idf_index.get(token, 1.0) for token in query_tokens if token in haystack_tokens
+    )
+
+
+def _phrase_bonus(query: str, text: str) -> float:
+    lowered_query = " ".join(query.lower().split())
+    lowered_text = " ".join(text.lower().split())
+    if not lowered_query or len(lowered_query) < 12:
+        return 0.0
+    return 2.0 if lowered_query in lowered_text else 0.0

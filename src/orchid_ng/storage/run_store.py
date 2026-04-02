@@ -131,6 +131,22 @@ class RunSession:
             for path in sorted((self.run_dir / "ideas").glob("seed_*.json"))
         ]
 
+    def load_background_evidence(self) -> list[EvidenceNote]:
+        return [
+            EvidenceNote.model_validate(item)
+            for item in json.loads(
+                (self.run_dir / "evidence" / "background.json").read_text()
+            )
+        ]
+
+    def load_idea_evidence(self, idea_id: str) -> list[EvidenceNote]:
+        path = self.run_dir / "evidence" / f"idea_{idea_id}.json"
+        if not path.exists():
+            return []
+        return [
+            EvidenceNote.model_validate(item) for item in json.loads(path.read_text())
+        ]
+
     def load_latest_ideas(self) -> list[IdeaCandidate]:
         round_files = sorted((self.run_dir / "search").glob("round_*.json"))
         if not round_files:

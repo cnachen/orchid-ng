@@ -20,3 +20,4 @@ justfile.*
 runs/
 .papers/
 papers/
+dataset*/

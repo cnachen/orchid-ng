@@ -58,12 +58,21 @@ def format_ideas(ideas: list[IdeaCandidate]) -> str:
         conditions = "; ".join(idea.required_conditions) or "none"
         risks = "; ".join(idea.open_risks) or "none"
         evidence_ids = ", ".join(idea.supporting_evidence_ids) or "none"
+        questions = "; ".join(idea.task_description.questions[:4]) or "none"
+        objectives = "; ".join(idea.task_description.research_objective[:4]) or "none"
+        contributions = "; ".join(idea.task_description.contributions[:4]) or "none"
+        modules = "; ".join(module.name for module in idea.method.modules[:6]) or "none"
         blocks.append(
             (
                 f"- [{idea.idea_id}] {idea.title}\n"
-                f"  summary={idea.summary}\n"
+                f"  task_summary={idea.task_description.summary or idea.summary}\n"
                 f"  hypothesis={idea.hypothesis}\n"
-                f"  mechanism={idea.mechanism}\n"
+                f"  method_summary={idea.method.summary or idea.mechanism}\n"
+                f"  questions={questions}\n"
+                f"  objectives={objectives}\n"
+                f"  contributions={contributions}\n"
+                f"  modules={modules}\n"
+                f"  framework={idea.method.framework or 'none'}\n"
                 f"  required_conditions={conditions}\n"
                 f"  resource_cost={idea.resource_cost}\n"
                 f"  open_risks={risks}\n"
@@ -79,3 +88,9 @@ def format_actions(actions: list[CritiqueAction]) -> str:
     return "\n".join(
         f"- {action.action_type}: {action.instruction}" for action in actions
     )
+
+
+def format_alignment_gaps(gaps: list[str]) -> str:
+    if not gaps:
+        return "- No explicit alignment gaps detected."
+    return "\n".join(f"- {gap}" for gap in gaps)

@@ -16,14 +16,39 @@ class EvidenceBuilder:
         self.top_k = top_k
 
     def build_background(self, topic: ResearchTopic) -> list[EvidenceNote]:
-        query = " ".join([topic.title, topic.question, topic.description, *topic.tags])
+        query = " ".join(
+            [
+                topic.title,
+                topic.question,
+                topic.description,
+                *topic.constraints,
+                *topic.tags,
+            ]
+        )
         papers = self.corpus_store.search(query=query, top_k=self.top_k)
         return _deduplicate_notes(
             [_paper_to_note(paper, EvidenceType.BACKGROUND) for paper in papers]
         )
 
     def build_for_idea(self, idea: IdeaCandidate) -> list[EvidenceNote]:
-        query = " ".join([idea.title, idea.summary, idea.hypothesis, idea.mechanism])
+        query = " ".join(
+            [
+                idea.title,
+                idea.summary,
+                idea.hypothesis,
+                idea.mechanism,
+                idea.task_description.summary,
+                " ".join(idea.task_description.keywords),
+                " ".join(idea.task_description.research_area),
+                " ".join(idea.task_description.questions),
+                " ".join(idea.task_description.research_objective),
+                " ".join(idea.task_description.contributions),
+                idea.method.summary,
+                idea.method.framework,
+                " ".join(module.name for module in idea.method.modules),
+                " ".join(module.description for module in idea.method.modules),
+            ]
+        )
         papers = self.corpus_store.search(query=query, top_k=self.top_k)
         return _deduplicate_notes(
             [_paper_to_note(paper, EvidenceType.IDEA_SPECIFIC) for paper in papers]
